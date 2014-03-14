@@ -5,6 +5,7 @@
 	using BookSleeve;
 	using Gerty;
 
+
 	public class Console {
 
 		public static void Main() {
@@ -29,8 +30,8 @@
 				Thread.Sleep(Timeout.Infinite);
 			}
 
-
-			System.Console.Out.WriteLineAsync("I hope life on Earth is everything you remember it to be.");
+			// Never executes ;)
+			System.Console.Out.WriteLine("I hope life on Earth is everything you remember it to be.");
 
 		}
 
