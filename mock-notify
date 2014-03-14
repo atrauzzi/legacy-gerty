@@ -1,0 +1,26 @@
+#!/bin/sh
+
+# Getting the message:
+# "Could not connect to Redis at 127.0.0.1:6379: Cannot assign requested address"
+# ???
+#
+# https://github.com/antirez/redis/issues/340
+#
+# You have to tweak your network stack to reuse connections!
+#
+# echo 1 > /proc/sys/net/ipv4/tcp_tw_reuse
+# sudo bash -c "echo 1 > /proc/sys/net/ipv4/tcp_tw_reuse"
+
+echo
+echo "Emptying gerty:*"
+redis-cli KEYS "gerty:*" | xargs redis-cli DEL > /dev/null
+
+# First create some duplicates.
+echo "Creating duplicate records."
+for i in `seq 1 10000`
+	do
+	redis-cli LPUSH gerty:job:queue {\"Transport\":\"apns\",\"Recipient\":\"hashhash\",\"Content\":\"Awesome!!!\"} > /dev/null
+done
+
+echo "Sending broadcast."
+redis-cli PUBLISH gerty:job:queue ready
