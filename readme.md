@@ -18,6 +18,7 @@ I had a few goals in mind when I set out to create Gerty:
  - Stable and clear handling of error conditions
  - Simple to integrate with other systems, no AMQP
  - Low operational and maintenance overhead
+ - Reasonable duplicate work detection
 
 
 ### Technical
@@ -43,6 +44,6 @@ If you're interested in making contributions to this project, feel free to send 
 
 ### Credits
 
-Like what you see?  Have a question or suggestion?
+Like what you see?  Have a question or suggestion?  Feel free to get in touch, either via github or my profile.
 
 Gerty is created by [Alexander Trauzzi](http://profiles.google.com/atrauzzi)
