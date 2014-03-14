@@ -1,15 +1,15 @@
-﻿namespace Gerty {
+﻿namespace Demo {
 
 	using System;
 	using System.Threading;
 	using BookSleeve;
-
+	using Gerty;
 
 	public class Console {
 
 		public static void Main() {
 
-			System.Console.Out.WriteLineAsync("Good morning Sam.");
+			System.Console.Out.WriteLine("Good morning Sam.");
 
 			RedisConnection connection = new RedisConnection("localhost");
 			Dispatcher dispatcher = new Dispatcher();
