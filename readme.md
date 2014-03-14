@@ -38,7 +38,7 @@ This project is available under the Apache 2.0 license.
 
 ### Contributing
 
-If you're interested in making contributing to this project, feel free to send me a pull request.  Don't forget to add yourself to the [contributors.md](/contributors.md) file!
+If you're interested in making contributions to this project, feel free to send me a pull request.  Don't forget to add yourself to the [contributors.md](/contributors.md) file!
 
 
 ### Credits
