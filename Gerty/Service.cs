@@ -40,13 +40,13 @@
 		}
 
 		protected void ConnectToRedis() {
-			System.Console.Out.WriteLine("Connecting to redis.");
+			Console.Out.WriteLine("Connecting to redis.");
 			connection.Open().Wait();
-			System.Console.Out.WriteLine("Redis connection established.");
+			Console.Out.WriteLine("Redis connection established.");
 			///
-			System.Console.Out.WriteLine("Opening subscription connection.");
+			Console.Out.WriteLine("Opening subscription connection.");
 			subscriberConnection = connection.GetOpenSubscriberChannel();
-			System.Console.Out.WriteLine("Subscription connection established.");
+			Console.Out.WriteLine("Subscription connection established.");
 		}
 
 		//
@@ -70,7 +70,7 @@
 				internalCancellationSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationTokens.ToArray());
 
 			PreWorkAccounting();
-			System.Console.Out.WriteLine("Pulling from queue.");
+			Console.Out.WriteLine("Pulling from queue.");
 
 			List<Task> jobRuns = new List<Task>();
 			do {
@@ -79,9 +79,9 @@
 			} while(!internalCancellationSource.IsCancellationRequested);
 
 			// Now wait for all continuations to complete.
-			await System.Console.Out.WriteLineAsync("Waiting for all work to complete.");
+			await Console.Out.WriteLineAsync("Waiting for all work to complete.");
 			await Task.WhenAll(jobRuns);
-			await System.Console.Out.WriteLineAsync("All jobs completed.");
+			await Console.Out.WriteLineAsync("All jobs completed.");
 
 			PostWorkAccounting();
 			EnterListeningState();
@@ -100,7 +100,7 @@
 			if(rawJobData == null) {
 
 				if(!internalCancellationSource.IsCancellationRequested) {
-					await System.Console.Out.WriteLineAsync("Queue is empty.");
+					await Console.Out.WriteLineAsync("Queue is empty.");
 					internalCancellationSource.Cancel();
 				}
 
@@ -155,7 +155,7 @@
 		 * Register a callback to allow the Redis server to signal when new work is available.
 		 */
 		protected void EnterListeningState() {
-			System.Console.Out.WriteLine("Entering listening state.");
+			Console.Out.WriteLine("Entering listening state.");
 			subscriberConnection.Subscribe(configuration.Queue, WorkReady);
 		}
 
@@ -163,7 +163,7 @@
 		 * Upon receiving any indication of new work, we can start working off the queue.
 		 */
 		protected void WorkReady(string key, byte[] data) {
-			System.Console.Out.WriteLine("Work is available.");
+			Console.Out.WriteLine("Work is available.");
 			ExitListeningState();
 			Work(null);
 		}
@@ -172,7 +172,7 @@
 		 * Called when we want to switch notification of new work.
 		 */
 		protected void ExitListeningState() {
-			System.Console.Out.WriteLine("Exiting listening state.");
+			Console.Out.WriteLine("Exiting listening state.");
 			subscriberConnection.Unsubscribe(configuration.Queue);
 		}
 
@@ -226,7 +226,7 @@
 		}
 
 		public void Dispose() {
-			System.Console.Out.WriteLine("Cleaning up.");
+			Console.Out.WriteLine("Cleaning up.");
 			// Remove this service's logs.
 			connection.Keys.Remove(0, configuration.WorkerLog).Wait();
 			// Consider: Put all the worker's pending jobs somewhere?
