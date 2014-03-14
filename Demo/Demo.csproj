@@ -8,6 +8,7 @@
     <RootNamespace>Demo</RootNamespace>
     <AssemblyName>gerty-demo</AssemblyName>
     <UseMSBuildEngine>True</UseMSBuildEngine>
+    <Description>A console app demonstrating Gerty at it's simplest.</Description>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
@@ -20,10 +21,11 @@
     <WarningLevel>4</WarningLevel>
     <CustomCommands>
       <CustomCommands>
-        <Command type="BeforeExecute" command="../mock" />
+        <Command type="BeforeExecute" command="mock" />
       </CustomCommands>
     </CustomCommands>
     <ConsolePause>false</ConsolePause>
+    <NoWarn>1998</NoWarn>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>full</DebugType>

@@ -15,6 +15,7 @@
 			RedisConnection connection = new RedisConnection("localhost");
 			Dispatcher dispatcher = new Dispatcher();
 			Configuration configuration = new Configuration();
+
 			CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
 			CancellationToken cancellationToken = cancellationTokenSource.Token;
 
