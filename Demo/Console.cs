@@ -5,13 +5,20 @@
 	using System.Threading.Tasks;
 	using BookSleeve;
 	using Gerty;
+	using NLog;
+	using NLog.Config;
+	using NLog.Targets;
 
 
 	public class Console {
 
-		public static void Main() {
+		protected static Logger Log = LogManager.GetLogger(typeof(Console).AssemblyQualifiedName);
 
-			System.Console.Out.WriteLine("Good morning Sam.");
+		public static void Main() {
+		
+			ConfigureLogging();
+
+			Log.Info("Good morning Sam.");
 
 			RedisConnection connection = new RedisConnection("localhost");
 			Dispatcher dispatcher = new Dispatcher();
@@ -33,7 +40,22 @@
 			}
 
 			// Never executes ;)
-			System.Console.Out.WriteLine("I hope life on Earth is everything you remember it to be.");
+			Log.Info("I hope life on Earth is everything you remember it to be."); 
+
+		}
+
+		protected static void ConfigureLogging() {
+
+			LoggingConfiguration config = new LoggingConfiguration();
+
+			ColoredConsoleTarget consoleTarget = new ColoredConsoleTarget();
+			config.AddTarget("console", consoleTarget);
+			consoleTarget.Layout = @"${machinename} ${date:format=HH\\:MM\\:ss} ${message}";
+
+			LoggingRule debugRule = new LoggingRule("*", LogLevel.Debug, consoleTarget);
+			config.LoggingRules.Add(debugRule);
+
+			LogManager.Configuration = config;
 
 		}
 

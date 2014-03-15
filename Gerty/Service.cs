@@ -5,10 +5,18 @@
 	using System.Threading;
 	using System.Diagnostics;
 	using System.Collections.Generic;
+	//
+	using NLog;
 	using BookSleeve;
 
 
 	public class Service : IDisposable {
+
+		protected static Logger Log = LogManager.GetLogger(typeof(Service).AssemblyQualifiedName);
+
+		//
+		//
+		//
 
 		protected RedisConnection connection;
 		protected Dispatcher dispatcher;
@@ -40,13 +48,13 @@
 		}
 
 		protected void ConnectToRedis() {
-			Console.Out.WriteLine("Connecting to redis.");
+			Log.Info("Connecting to redis.");
 			connection.Open().Wait();
-			Console.Out.WriteLine("Redis connection established.");
+			Log.Debug("Redis connection established.");
 			///
-			Console.Out.WriteLine("Opening subscription connection.");
+			Log.Info("Opening subscription connection.");
 			subscriberConnection = connection.GetOpenSubscriberChannel();
-			Console.Out.WriteLine("Subscription connection established.");
+			Log.Debug("Subscription connection established.");
 		}
 
 		//
@@ -70,7 +78,7 @@
 				internalCancellationSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationTokens.ToArray());
 
 			PreWorkAccounting();
-			Console.Out.WriteLine("Pulling from queue.");
+			Log.Debug("Pulling from queue.");
 
 			List<Task> jobRuns = new List<Task>();
 			do {
@@ -78,15 +86,15 @@
 				jobRuns.Add(PullJob());
 			} while(!internalCancellationSource.IsCancellationRequested);
 
-			await Console.Out.WriteLineAsync("Waiting for all jobs to complete.");
+			Log.Info("Waiting for all jobs to complete.");
 			try {
 				await Task.WhenAll(jobRuns.ToArray());
 			}
 			catch(Exception ex) {
-				Console.Out.WriteLine(ex.ToString());
+				Log.ErrorException("Job Failed", ex);
 			}
 
-			await Console.Out.WriteLineAsync("All jobs completed.");
+			Log.Debug("All jobs completed.");
 			PostWorkAccounting();
 			EnterListeningState();
 
@@ -104,10 +112,7 @@
 			if(rawJobData == null) {
 
 				if(!internalCancellationSource.IsCancellationRequested) {
-					// For some reason, using the async variant sometimes causes "System.InvalidOperationException: Operation is not valid due to the current state of the object"
-					// exceptions.  My suspicion is that it's during the end of a queue.
-					//await Console.Out.WriteLineAsync("Queue is empty.");
-					Console.Out.WriteLine("Queue is empty.");
+					Log.Debug("Queue is empty.");
 					internalCancellationSource.Cancel();
 				}
 
@@ -121,13 +126,16 @@
 			}
 			// If we make it here, a job was found and we're good to run it!
 			else {
+
 				try {
 
-					Task<Tuple<bool, string>> dispatch = dispatcher.DispatchJob(Decode(rawJobData));
-					if(dispatch.Exception != null)
-						throw dispatch.Exception.InnerExceptions[0];
+					//Task<Tuple<bool, string>> dispatch = dispatcher.DispatchJob(Decode(rawJobData));
+					//Tuple<bool, string> result = await dispatch;
+					//if(dispatch.Exception != null)
+					//	throw dispatch.Exception.InnerException;
 
-					Tuple<bool, string> result = await dispatch;
+					Tuple<bool, string> result = await dispatcher.DispatchJob(Decode(rawJobData));
+
 					bool handled = result.Item1;
 					byte[] rawHandledJobData = Encode(result.Item2);
 
@@ -162,7 +170,7 @@
 		 * Register a callback to allow the Redis server to signal when new work is available.
 		 */
 		protected void EnterListeningState() {
-			Console.Out.WriteLine("Entering listening state.");
+			Log.Info("Entering listening state.");
 			subscriberConnection.Subscribe(configuration.Queue, WorkReady);
 		}
 
@@ -170,9 +178,7 @@
 		 * Upon receiving any indication of new work, we can start working off the queue.
 		 */
 		protected void WorkReady(string key, byte[] data) {
-			Console.Out.WriteLine("");
-			Console.Out.WriteLine(DateTime.Now.ToString());
-			Console.Out.WriteLine("Work is available.");
+			Log.Debug("Work is available.");
 			ExitListeningState();
 			Work(null);
 		}
@@ -181,7 +187,8 @@
 		 * Called when we want to switch notification of new work.
 		 */
 		protected void ExitListeningState() {
-			Console.Out.WriteLine("Exiting listening state.");
+			Log.Info(DateTime.Now.ToString());
+			Log.Info("Exiting listening state.");
 			subscriberConnection.Unsubscribe(configuration.Queue);
 		}
 
@@ -204,7 +211,7 @@
 
 		protected void PostWorkAccounting() {
 
-			Console.Out.WriteLine(String.Concat("Elapsed time: ", batchTimer.ElapsedMilliseconds.ToString(), "ms"));
+			Log.Info(String.Concat("Elapsed time: ", batchTimer.ElapsedMilliseconds.ToString(), "ms"));
 
 			connection.Hashes.Set(0, configuration.WorkerLog, new Dictionary<string, byte[]>() {
 				// We have to do this at the end of each job as the last in the batch is the only one that knows the proper end time.
@@ -237,7 +244,7 @@
 		}
 
 		public void Dispose() {
-			Console.Out.WriteLine("Cleaning up.");
+			Log.Debug("Cleaning up.");
 			// Remove this service's logs.
 			connection.Keys.Remove(0, configuration.WorkerLog).Wait();
 			// Consider: Put all the worker's pending jobs somewhere?
