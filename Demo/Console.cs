@@ -50,7 +50,7 @@
 
 			ColoredConsoleTarget consoleTarget = new ColoredConsoleTarget();
 			config.AddTarget("console", consoleTarget);
-			consoleTarget.Layout = @"${machinename} ${date:format=HH\\:MM\\:ss} ${message}";
+			consoleTarget.Layout = @"${machinename}:${date:format=HH\\:MM\\:ss} ${message}";
 
 			LoggingRule debugRule = new LoggingRule("*", LogLevel.Debug, consoleTarget);
 			config.LoggingRules.Add(debugRule);

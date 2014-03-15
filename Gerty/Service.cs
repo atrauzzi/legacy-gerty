@@ -127,31 +127,33 @@
 			// If we make it here, a job was found and we're good to run it!
 			else {
 
+				Tuple<bool, string> result = null;
+
+				// Any errors thrown by the dispatcher belong in the job error log.
 				try {
+					result = await dispatcher.DispatchJob(Decode(rawJobData));
+				}
+				catch(Exception ex) {
+					Log.TraceException("Handler Error", ex);
+					connection.Hashes.Set(0, configuration.Error, Decode(rawJobData), ex.Message);
+				}
 
-					//Task<Tuple<bool, string>> dispatch = dispatcher.DispatchJob(Decode(rawJobData));
-					//Tuple<bool, string> result = await dispatch;
-					//if(dispatch.Exception != null)
-					//	throw dispatch.Exception.InnerException;
-
-					Tuple<bool, string> result = await dispatcher.DispatchJob(Decode(rawJobData));
+				// If a handler was successfully run.
+				if(result != null) {
 
 					bool handled = result.Item1;
 					byte[] rawHandledJobData = Encode(result.Item2);
 
-					// If a listener claimed the work and we're logging completed work...
-					if(handled && configuration.MaxCompleted > 0) {
+					// If no handler claimed the work.
+					if(!handled) {
+						connection.Lists.AddFirst(0, configuration.Unclaimed, rawHandledJobData);
+					}
+					// If a handler claimed the work and we're logging completed work.
+					else if(configuration.MaxCompleted > 0) {
 						connection.Lists.AddFirst(0, configuration.Completed, rawHandledJobData);
 						connection.Lists.Trim(0, configuration.Completed, 0, (configuration.MaxCompleted - 1));
 					}
-					// If no listeners claimed the work...
-					else {
-						connection.Lists.AddFirst(0, configuration.Unclaimed, rawHandledJobData);
-					}
 
-				}
-				catch(Exception ex) {
-					connection.Hashes.Set(0, configuration.Error, Decode(rawJobData), ex.Message);
 				}
 
 			}
