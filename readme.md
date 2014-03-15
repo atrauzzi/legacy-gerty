@@ -15,6 +15,7 @@ I had a few goals in mind when I set out to create Gerty:
  - Mono and Linux compatibile
  - Asynchronous, non-blocking and performant like node.js
  - Unlike node.js however, cleaner and more explicit code
+ - Reentrant when individual jobs fail
  - Stable and clear handling of error conditions
  - Simple to integrate with other systems, no AMQP
  - Low operational and maintenance overhead
@@ -23,11 +24,22 @@ I had a few goals in mind when I set out to create Gerty:
 
 ### Technical
 
-More details to come!
+Gerty leverages Redis' single threaded nature along with C# async/await mechanics to complete jobs as quickly as it can.  Based on your architecture (multi-machine, multi-core), multiple instances of Gerty are also able to be pointed at the same namespace to handle more jobs at once.
+
+I've chosen what I feel are the most pervasive tools for each concern, as a result Gerty depends on the following libraries:
+
+ - [Booksleeve](https://code.google.com/p/booksleeve)
+ - [JSON.net](http://james.newtonking.com/json)
+ - [NLog](http://nlog-project.org)
+
+If you feel like any of these can or should be abstracted away or has a superior alternative, feel free to let me know or send a pull request!
+
 
 ## Using
 
-Stay tuned! I'm in the process of getting Gerty set up as a NuGet package.
+I am in the process of getting Gerty set up as a NuGet package; Currently there is a [known issue with creating packages from Linux](https://nuget.codeplex.com/workitem/4077) which I would like to see addressed.  This shouldn't however prevent you from checking out the code and building it yourself in the meantime, and once the nuget package is published, adding it to your project.
+
+I also encourage you to vote for that issue and leave a comment until it is resolved.
 
 
 ## Meta
