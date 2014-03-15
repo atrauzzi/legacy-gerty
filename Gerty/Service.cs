@@ -78,7 +78,7 @@
 				jobRuns.Add(PullJob());
 			} while(!internalCancellationSource.IsCancellationRequested);
 
-			await Console.Out.WriteLineAsync("Waiting for all work to complete.");
+			await Console.Out.WriteLineAsync("Waiting for all jobs to complete.");
 			try {
 				await Task.WhenAll(jobRuns.ToArray());
 			}
@@ -104,8 +104,8 @@
 			if(rawJobData == null) {
 
 				if(!internalCancellationSource.IsCancellationRequested) {
-					// For some reason, this causes crashes.
-					//await Console.Out.WriteLineAsync("Queue is empty.");
+					// For some reason, this sometimes causes crashes, I suspect at the end of a queue.
+					await Console.Out.WriteLineAsync("Queue is empty.");
 					internalCancellationSource.Cancel();
 				}
 
@@ -168,6 +168,8 @@
 		 * Upon receiving any indication of new work, we can start working off the queue.
 		 */
 		protected void WorkReady(string key, byte[] data) {
+			Console.Out.WriteLine("");
+			Console.Out.WriteLine(DateTime.Now.ToString());
 			Console.Out.WriteLine("Work is available.");
 			ExitListeningState();
 			Work(null);
@@ -199,6 +201,8 @@
 		}
 
 		protected void PostWorkAccounting() {
+
+			Console.Out.WriteLine(String.Concat("Elapsed time: ", batchTimer.ElapsedMilliseconds.ToString(), "ms"));
 
 			connection.Hashes.Set(0, configuration.WorkerLog, new Dictionary<string, byte[]>() {
 				// We have to do this at the end of each job as the last in the batch is the only one that knows the proper end time.
