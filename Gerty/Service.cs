@@ -124,7 +124,7 @@
 			if(!await connection.Sets.Add(0, configuration.Recent, rawJobData)) {
 				connection.Hashes.Increment(0, configuration.Duplicate, Decode(rawJobData));
 			}
-			// If we make it here, a job was found and we're good to run it!
+			// If we make it here, a job was found and we're good to try running it.
 			else {
 
 				Tuple<bool, string> result = null;
@@ -195,9 +195,12 @@
 		}
 
 		//
-		// Redis-Specific Accounting
+		// Lifecycle Accounting
 		//
 
+		/**
+		 * Called just before a work loop is begun.
+		 */
 		protected void PreWorkAccounting() {
 
 			batchTimer.Restart();
@@ -211,6 +214,9 @@
 
 		}
 
+		/**
+		 * Called after all jobs from a work loop are completed.
+		 */
 		protected void PostWorkAccounting() {
 
 			Log.Info(String.Concat("Elapsed time: ", batchTimer.ElapsedMilliseconds.ToString(), "ms"));
@@ -226,13 +232,16 @@
 
 		}
 
+		/**
+		 * Called after all job logic is finished.
+		 */
 		protected void PostJobAccounting() {
 			connection.Hashes.Increment(0, configuration.WorkerLog, "worker_total");
 			connection.Hashes.Increment(0, configuration.WorkerLog, "last_batch_total");
 		}
 
 		//
-		//
+		// Utilities
 		//
 
 		/**
