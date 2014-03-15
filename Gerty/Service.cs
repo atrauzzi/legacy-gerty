@@ -104,8 +104,10 @@
 			if(rawJobData == null) {
 
 				if(!internalCancellationSource.IsCancellationRequested) {
-					// For some reason, this sometimes causes crashes, I suspect at the end of a queue.
-					await Console.Out.WriteLineAsync("Queue is empty.");
+					// For some reason, using the async variant sometimes causes "System.InvalidOperationException: Operation is not valid due to the current state of the object"
+					// exceptions.  My suspicion is that it's during the end of a queue.
+					//await Console.Out.WriteLineAsync("Queue is empty.");
+					Console.Out.WriteLine("Queue is empty.");
 					internalCancellationSource.Cancel();
 				}
 

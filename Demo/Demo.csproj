@@ -7,7 +7,6 @@
     <OutputType>Exe</OutputType>
     <RootNamespace>Demo</RootNamespace>
     <AssemblyName>gerty-demo</AssemblyName>
-    <UseMSBuildEngine>True</UseMSBuildEngine>
     <Description>A console app demonstrating Gerty at it's simplest.</Description>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
   </PropertyGroup>
@@ -64,6 +63,7 @@
           <CSharpFormattingPolicy IndentBreakStatements="False" AlignEmbeddedUsingStatements="False" AlignEmbeddedIfStatements="False" IndentPreprocessorDirectives="False" NamespaceBraceStyle="EndOfLine" ClassBraceStyle="EndOfLine" InterfaceBraceStyle="EndOfLine" StructBraceStyle="EndOfLine" EnumBraceStyle="EndOfLine" MethodBraceStyle="EndOfLine" ConstructorBraceStyle="EndOfLine" DestructorBraceStyle="EndOfLine" ElseNewLinePlacement="NewLine" CatchNewLinePlacement="NewLine" FinallyNewLinePlacement="NewLine" BeforeMethodDeclarationParentheses="False" BeforeMethodCallParentheses="False" BeforeConstructorDeclarationParentheses="False" BeforeIndexerDeclarationBracket="False" BeforeDelegateDeclarationParentheses="False" AfterDelegateDeclarationParameterComma="True" NewParentheses="False" IfParentheses="False" WhileParentheses="False" ForParentheses="False" ForeachParentheses="False" CatchParentheses="False" SwitchParentheses="False" LockParentheses="False" UsingParentheses="False" SpacesBeforeBrackets="False" BlankLinesAfterUsings="2" inheritsSet="Mono" inheritsScope="text/x-csharp" scope="text/x-csharp" />
           <TextStylePolicy FileWidth="120" TabsToSpaces="False" inheritsSet="VisualStudio" inheritsScope="text/plain" scope="text/plain" />
         </Policies>
+        <Deployment.LinuxDeployData generateScript="False" />
       </Properties>
     </MonoDevelop>
   </ProjectExtensions>
