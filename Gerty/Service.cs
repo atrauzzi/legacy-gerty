@@ -78,11 +78,15 @@
 				jobRuns.Add(PullJob());
 			} while(!internalCancellationSource.IsCancellationRequested);
 
-			// Now wait for all continuations to complete.
 			await Console.Out.WriteLineAsync("Waiting for all work to complete.");
-			await Task.WhenAll(jobRuns);
-			await Console.Out.WriteLineAsync("All jobs completed.");
+			try {
+				await Task.WhenAll(jobRuns.ToArray());
+			}
+			catch(Exception ex) {
+				Console.Out.WriteLine(ex.ToString());
+			}
 
+			await Console.Out.WriteLineAsync("All jobs completed.");
 			PostWorkAccounting();
 			EnterListeningState();
 
@@ -100,7 +104,8 @@
 			if(rawJobData == null) {
 
 				if(!internalCancellationSource.IsCancellationRequested) {
-					await Console.Out.WriteLineAsync("Queue is empty.");
+					// For some reason, this causes crashes.
+					//await Console.Out.WriteLineAsync("Queue is empty.");
 					internalCancellationSource.Cancel();
 				}
 
