@@ -19,11 +19,9 @@
 		//
 		//
 
-		protected RedisConnection connection;
 		protected Dispatcher dispatcher;
 		protected Configuration configuration;
 
-		protected RedisSubscriberConnection subscriberConnection;
 		protected Stopwatch batchTimer;
 
 		protected bool working;
@@ -148,14 +146,11 @@
 					byte[] rawHandledJobData = Encode(result.Item2);
 
 					// If no handler claimed the work.
-					if(!handled) {
+					if(!handled)
 						connection.Lists.AddFirst(0, configuration.Unclaimed, rawHandledJobData);
-					}
 					// If a handler claimed the work and we're logging completed work.
-					else if(configuration.MaxCompleted > 0) {
+					else if(configuration.MaxCompleted > 0)
 						connection.Lists.AddFirst(0, configuration.Completed, rawHandledJobData);
-						connection.Lists.Trim(0, configuration.Completed, 0, (configuration.MaxCompleted - 1));
-					}
 
 				}
 
@@ -163,36 +158,6 @@
 
 			PostJobAccounting();
 
-		}
-
-		//
-		// Listening Algorithm
-		//
-
-		/**
-		 * Register a callback to allow the Redis server to signal when new work is available.
-		 */
-		protected void EnterListeningState() {
-			Log.Info("Entering listening state.");
-			subscriberConnection.Subscribe(configuration.Queue, WorkReady);
-		}
-
-		/**
-		 * Upon receiving any indication of new work, we can start working off the queue.
-		 */
-		protected void WorkReady(string key, byte[] data) {
-			Log.Debug("Work is available.");
-			ExitListeningState();
-			Work();
-		}
-
-		/**
-		 * Called when we want to switch notification of new work.
-		 */
-		protected void ExitListeningState() {
-			Log.Info(DateTime.Now.ToString());
-			Log.Info("Exiting listening state.");
-			subscriberConnection.Unsubscribe(configuration.Queue);
 		}
 
 		//
@@ -227,6 +192,10 @@
 				{ "last_batch_duration_ms", Encode(batchTimer.ElapsedMilliseconds.ToString()) }
 			});
 
+			// If we're tracking completed jobs.
+			if(configuration.MaxCompleted > 0)
+				connection.Lists.Trim(0, configuration.Completed, 0, (configuration.MaxCompleted - 1));
+
 			// If configured, update the rolling window for duplicate detection.
 			if(configuration.DuplicateWindow > 0)
 				connection.Keys.Expire(0, configuration.Recent, configuration.DuplicateWindow);
@@ -239,6 +208,36 @@
 		protected void PostJobAccounting() {
 			connection.Hashes.Increment(0, configuration.WorkerLog, "worker_total");
 			connection.Hashes.Increment(0, configuration.WorkerLog, "last_batch_total");
+		}
+
+		//
+		// Listening Algorithm
+		//
+
+		/**
+		 * Register a callback to allow the Redis server to signal when new work is available.
+		 */
+		protected void EnterListeningState() {
+			Log.Info("Entering listening state.");
+			subscriberConnection.Subscribe(configuration.Queue, WorkReady);
+		}
+
+		/**
+		 * Upon receiving any indication of new work, we can start working off the queue.
+		 */
+		protected void WorkReady(string key, byte[] data) {
+			Log.Debug("Work is available.");
+			ExitListeningState();
+			Work();
+		}
+
+		/**
+		 * Called when we want to switch notification of new work.
+		 */
+		protected void ExitListeningState() {
+			Log.Info(DateTime.Now.ToString());
+			Log.Info("Exiting listening state.");
+			subscriberConnection.Unsubscribe(configuration.Queue);
 		}
 
 		//
@@ -263,16 +262,13 @@
 		}
 
 		//
+		// Redis
 		//
-		//
 
-		private class Operations {
+		protected RedisConnection connection;
+		protected RedisSubscriberConnection subscriberConnection;
 
-			public Operations() {
 
-			}
-
-		}
 
 	}
 
