@@ -24,9 +24,6 @@
 			Dispatcher dispatcher = new Dispatcher();
 			Configuration configuration = new Configuration();
 
-			CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
-			CancellationToken cancellationToken = cancellationTokenSource.Token;
-
 			// Just a test handler.
 			dispatcher.addHandler(async (job) => {
 				return true;
@@ -34,7 +31,7 @@
 				
 			using(Service service = new Service(connection, dispatcher, configuration)) {
 				service.Boot();
-				service.Work(cancellationToken);
+				service.Work();
 				// We have to block the program from terminating, just not with practical code.
 				Thread.Sleep(Timeout.Infinite);
 			}

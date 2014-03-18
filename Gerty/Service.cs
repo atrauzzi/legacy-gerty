@@ -5,6 +5,7 @@
 	using System.Threading;
 	using System.Diagnostics;
 	using System.Collections.Generic;
+	using System.Security.Cryptography;
 	//
 	using NLog;
 	using BookSleeve;
@@ -23,9 +24,9 @@
 		protected Configuration configuration;
 
 		protected RedisSubscriberConnection subscriberConnection;
-		protected CancellationTokenSource internalCancellationSource;
-		protected List<CancellationToken> cancellationTokens;
 		protected Stopwatch batchTimer;
+
+		protected bool working;
 
 		public Service(
 			RedisConnection connection,
@@ -37,7 +38,6 @@
 			this.dispatcher = dispatcher;
 			this.configuration = configuration;
 
-			cancellationTokens = new List<CancellationToken>();
 			batchTimer = new Stopwatch();
 
 		}
@@ -61,81 +61,84 @@
 		// Work Handling
 		//
 
-		/**
-		 * Represents the process by which work is fetched.
-		 * 
-		 *  - Poll the queue asynchronously like a baeast!
-		 *  - When no work is available, stop polling and become event-driven.
-		 */
-		public async Task Work(CancellationToken? externalCancellationToken) {
-
-			if(externalCancellationToken.HasValue)
-				cancellationTokens.Add(externalCancellationToken.Value);
-
-			if(cancellationTokens.Count < 1)
-				internalCancellationSource = new CancellationTokenSource();
-			else
-				internalCancellationSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationTokens.ToArray());
-
+		public async Task Work() {
+		
 			PreWorkAccounting();
-			Log.Debug("Pulling from queue.");
 
-			List<Task> jobRuns = new List<Task>();
-			do {
-				// Add each continuation to a collection which we can then wait on.
-				jobRuns.Add(PullJob());
-			} while(!internalCancellationSource.IsCancellationRequested);
+			if(working)
+				throw new Exception("Already working.");
 
-			Log.Info("Waiting for all jobs to complete.");
-			try {
-				await Task.WhenAll(jobRuns.ToArray());
-			}
-			catch(Exception ex) {
-				Log.ErrorException("Job Failed", ex);
-			}
+			List<Task> jobs = new List<Task>();
+			Log.Debug("Working.");
+			working = true;
+			while(working)
+				jobs.Add(DoQueueJob());
 
-			Log.Debug("All jobs completed.");
+			Log.Info("Waiting for all work to finish.");
+			await Task.WhenAll(jobs);
+
 			PostWorkAccounting();
 			EnterListeningState();
 
 		}
+						
+		//
+		//
+		//
 
 		/**
 		 * Communicates with Redis to obtain job data and decide what to do with it.
 		 */
-		protected async Task PullJob() {
+		protected async Task DoQueueJob() {
 
-			// Claim a job.
+			// Reserve a job.
 			byte[] rawJobData = await connection.Lists.RemoveLastAndAddFirst(0, configuration.Queue, configuration.Reserved);
 
-			// If we've found the end of the queue and a cancellation hasn't been requested yet...
+			// If the queue is empty...
 			if(rawJobData == null) {
+			
+				Log.Trace("No job found.");
 
-				if(!internalCancellationSource.IsCancellationRequested) {
-					Log.Debug("Queue is empty.");
-					internalCancellationSource.Cancel();
-				}
-
-				// There is no job, don't try to log anything.
-				return;
+				// If we're the first one to reach the end of the queue.
+				if(working)
+					working = false;
 
 			}
-			// See if the job is a duplicate, if so, send it to the duplicate queue and skip.
-			if(!await connection.Sets.Add(0, configuration.Recent, rawJobData)) {
-				connection.Hashes.Increment(0, configuration.Duplicate, Decode(rawJobData));
+			else {
+				// We have a valid job.
+				DoJob(rawJobData);
+				// Unreserve one copy of the job.
+				connection.Lists.Remove(0, configuration.Reserved, rawJobData, 1);
 			}
-			// If we make it here, a job was found and we're good to try running it.
+
+		}
+
+		/**
+		 * Handle job data, outside of the claim lifecycle.
+		 */
+		protected async Task DoJob(byte[] rawJobData) {
+
+			MD5 md5 = new MD5CryptoServiceProvider();
+
+			string jobKey = BitConverter.ToString(md5.ComputeHash(rawJobData));
+			string decodedJobData = Decode(rawJobData);
+
+			// See if the job is a duplicate, if so, count it in the duplicate queue and skip.
+			if(!await connection.Sets.Add(0, configuration.Recent, jobKey)) {
+				connection.Hashes.Increment(0, configuration.Duplicate, decodedJobData);
+			}
+			// If we make it here, the job is safe to run.
 			else {
 
 				Tuple<bool, string> result = null;
 
 				// Any errors thrown by the dispatcher belong in the job error log.
 				try {
-					result = await dispatcher.DispatchJob(Decode(rawJobData));
+					result = await dispatcher.DispatchJob(decodedJobData);
 				}
 				catch(Exception ex) {
 					Log.TraceException("Handler Error", ex);
-					connection.Hashes.Set(0, configuration.Error, Decode(rawJobData), ex.Message);
+					connection.Hashes.Set(0, configuration.Error, decodedJobData, ex.Message);
 				}
 
 				// If a handler was successfully run.
@@ -158,8 +161,6 @@
 
 			}
 
-			// We're done with the job data, remove it from our reserved queue.
-			connection.Lists.Remove(0, configuration.Reserved, rawJobData, 0);
 			PostJobAccounting();
 
 		}
@@ -182,7 +183,7 @@
 		protected void WorkReady(string key, byte[] data) {
 			Log.Debug("Work is available.");
 			ExitListeningState();
-			Work(null);
+			Work();
 		}
 
 		/**
@@ -259,6 +260,18 @@
 			// Remove this service's logs.
 			connection.Keys.Remove(0, configuration.WorkerLog).Wait();
 			// Consider: Put all the worker's pending jobs somewhere?
+		}
+
+		//
+		//
+		//
+
+		private class Operations {
+
+			public Operations() {
+
+			}
+
 		}
 
 	}

@@ -56,7 +56,7 @@
 
 		public string Reserved {
 			get {
-				return string.Concat(Namespace, ":job:reserved:", Identifier);
+				return string.Concat(Namespace, ":job:reserved");
 			}
 		}
 
@@ -73,8 +73,8 @@
 			Identifier = Process.GetCurrentProcess().Id.ToString();
 			Namespace = "gerty";
 			MaxCompleted = 100;
-			// 30 minutes
-			DuplicateWindow = 1800;
+			// 15 minutes
+			DuplicateWindow = 900;
 
 		}
 
